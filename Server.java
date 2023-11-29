@@ -72,7 +72,6 @@ public class Server implements Runnable{
             this.pseudo = pseudo;
         }
         
-        
 
         @Override
         public void run() {

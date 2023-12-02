@@ -14,18 +14,21 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.SplittableRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  *
- * @author _irk
+ * @author noudo
  */
-public class Server implements Runnable{
-    
+
+public class Server implements Runnable {
+
     List<Chat> listClients = new ArrayList<>();
+
     public static void main(String[] args) throws IOException {
-         new Thread(new Server()).start(); 
+        new Thread(new Server()).start();
     }
 
     @Override
@@ -33,26 +36,36 @@ public class Server implements Runnable{
         try {
             ServerSocket ss = new ServerSocket(1234);
             System.out.println("Démarrage du serveur");
-            
-            Socket s = ss.accept();
-            //Lecture de données
-                 
 
-                 String pseudo = null;
-                 Chat c = new Chat(s,pseudo);
-                    c.start();
-                    listClients.add(c);
-            
+            while (true) {
+                Socket s = ss.accept();
+                /*OutputStream os = s.getOutputStream();
+            PrintWriter pw = new PrintWriter(os, true);
+            String IP = s.getRemoteSocketAddress().toString();*/
+
+                String pseudo = "";
+                Chat c = new Chat(s, pseudo);
+
+                //System.out.println("Bienvenue client " +IP);
+                c.start();
+
+                listClients.add(c);
+                System.out.println("Taille " + listClients.size());
+            }
         } catch (IOException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
         }
+
     }
 
-    private class Chat extends Thread{
-         private Socket socket;
-         private String pseudo;
+
+    private class Chat extends Thread {
+
+        private Socket socket;
+        private String pseudo;
+
         public Chat(Socket s, String pseudo) {
-            this.socket=s;
+            this.socket = s;
             this.pseudo = pseudo;
         }
 
@@ -71,44 +84,94 @@ public class Server implements Runnable{
         public void setPseudo(String pseudo) {
             this.pseudo = pseudo;
         }
-        
 
         @Override
         public void run() {
-            
-             try {
-                 //Lecture de données
-                 
-                 InputStream is = socket.getInputStream();
-                 InputStreamReader isr = new InputStreamReader(is);
-                 BufferedReader br = new BufferedReader(isr);
-                 
-                 //Ecriture de données
-                 
-                 OutputStream os = socket.getOutputStream();
-                 PrintWriter pw = new PrintWriter(os,true);
-                 String IP = socket.getRemoteSocketAddress().toString();
-                 
-                 while (true) {
-                    pw.println("Veuillez entrer un pseudo: ");
-                    pseudo = br.readLine();
+
+            try {
+                //Lecture de données
+                InputStream is = socket.getInputStream();
+                InputStreamReader isr = new InputStreamReader(is);
+                BufferedReader br = new BufferedReader(isr);
+                //Ecriture de données
+                OutputStream os = socket.getOutputStream();
+                PrintWriter pw = new PrintWriter(os, true);
+                String IP = socket.getRemoteSocketAddress().toString();
+                
+
+                while (true) {
                     
-                    boolean isExiste = false;
-                   
-                    while ("".equals(pseudo)) {
+
+                            pw.println("Veuillez entrer un pseudo: ");
+                            pseudo = br.readLine();
+                        //} else if (pseudo.isEmpty()) {
+                         //   pw.println("Le Pseudo ne peut pas etre nul: ");
+                         //   pseudo = br.readLine();
+                        //} else {
+                            
+                        //}
+                    
+                    
+                    
+                    //pseudo = br.readLine();
+                    /*boolean isExiste = false;*/
+
+                        /*while ("".equals(pseudo)) {
                        pw.println("Le Pseudo ne peut pas etre nul: ");
                        pseudo = br.readLine();
-                    } 
+                    } */
                     pw.println("Bienvenue client " +pseudo);
-                 }
-                 
-                 
-             } catch (IOException ex) {
-                 Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
-             } 
+                    String requete = null;
+                    while ((requete = br.readLine()) != null) {
+                        System.out.println("Le client a envoyé : " + requete);
+                        pw.println("Le client a envoyé : " + requete);
+                        broadCast(pseudo, requete);
+                    }
+                }
+
+            } catch (IOException ex) {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            }
 
         }
         
+        
+    public void broadCast(String pseudo, String requete) throws IOException {
+
+        System.out.println("Taille ");
+        System.out.println("Taille " + listClients.size());
+        
+        if(requete.contains(":")){
+            String msg [] = requete.split(":",2);
+            String req = msg[0].trim();
+            String destinateur = msg[1].trim();
+            for (Chat client : listClients) {
+            if (client.getPseudo().equals(req)) {
+                Socket sock = client.getSocket();
+                OutputStream os = sock.getOutputStream();
+                PrintWriter pw = new PrintWriter(os, true);
+                System.out.println("Tu veux quoi? :");
+                pw.println(pseudo+ " Diffuse :" +destinateur);
+            return;}}
+            
+            PrintWriter pw = new PrintWriter(socket.getOutputStream(),true);
+            pw.println("Le pseudo " +req+ "est indisponible");
+            
+       }else {
+            for(Chat client:listClients){
+                if(!client.getPseudo().equals(pseudo)){
+                    Socket sock = client.getSocket();
+                    OutputStream os = sock.getOutputStream();
+                    PrintWriter pw = new PrintWriter(os,true);
+                    pw.println(pseudo+ "diffuse: " +requete);
+                    if(client.pseudo == null?pseudo != null :! client.pseudo.equals(pseudo)){
+                        pw.println(pseudo+ "Diffuse: " +requete);
+                    }
+                }
+            }
+        }
+     
+        }
     }
-    
-}
+
+    }
